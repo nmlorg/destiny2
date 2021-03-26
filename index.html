@@ -2,20 +2,82 @@
 
 <script src="apikey.js"></script>
 <script>
-function bfetch(path, params) {
-  headers = {
-      'X-API-Key': API_KEY,
-  };
-  if (params) {
-    let paramobj = new URLSearchParams();
-    for (let [k, v] of Object.entries(params))
-      paramobj.append(k, v);
-    path = `${path}?${paramobj.toString()}`;
+class Bungie {
+  constructor() {
+    this.auth = {expires: 0, refresh_expires: 0};
   }
-  return fetch('https://www.bungie.net/Platform' + path, {headers})
-      .then(req => req.json());
+
+  store(key, data) {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+
+  get(key) {
+    let data = localStorage.getItem(key);
+    if (data)
+      return JSON.parse(data);
+  }
+
+  fetch(path, params, method='GET') {
+    let headers = {
+        'X-API-Key': API_KEY,
+    };
+    if (this.auth.expires > Date.now())
+      headers['Authorization'] = 'Bearer ' + this.auth.access_token;
+    let init = {method, headers};
+    if (params) {
+      let paramobj = new URLSearchParams();
+      for (let [k, v] of Object.entries(params))
+        paramobj.append(k, v);
+      if (method == 'GET')
+        path = `${path}?${paramobj.toString()}`;
+      else {
+        headers['Content-Type'] = 'application/x-www-form-urlencoded';
+        init['body'] = paramobj.toString();
+      }
+    }
+    path = 'https://www.bungie.net/Platform' + path;
+    console.log('fetch(', path, init, ')');
+    return fetch(path, init)
+        .then(req => req.json());
+  }
+
+  login() {
+    let search = new URLSearchParams(location.search);
+    if (search.get('code') && search.get('state')) {
+      let state = atob(search.get('state'));
+      if (state[0] == '#')
+        return this.fetch('/App/OAuth/token/', {client_id: CLIENT_ID, grant_type: 'authorization_code', code: search.get('code')}, 'POST')
+            .then(data => {
+              this.handleCredentials(data);
+              history.replaceState(null, null, '.' + state);
+            });
+    }
+    let auth = this.get('auth');
+    if (auth)
+      this.auth = auth;
+    let now = Date.now();
+    if (this.auth.expires > now)
+      return Promise.resolve();
+    if (this.auth.refresh_expires > now)
+      return this.fetch('/App/OAuth/token/', {client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: this.auth.refresh_token}, 'POST')
+          .then(data => this.handleCredentials(data));
+    location.replace(`https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${btoa(location.hash || '#')}`);
+    return Promise.reject();
+  }
+
+  handleCredentials(data) {
+    let now = Date.now();
+    data.expires = now + data.expires_in * 1000 - 1000;
+    data.refresh_expires = now + data.refresh_expires_in * 1000 - 1000;
+    this.auth = data;
+    this.store('auth', this.auth);
+  }
 }
 
-bfetch('/User/SearchUsers', {q: 'nmlorg'})
-    .then(data => console.log('data =', data));
+
+let bungie = new Bungie();
+
+bungie.login()
+    .then(() => bungie.fetch('/User/GetMembershipsForCurrentUser/'))
+    .then(data => console.log('Current user:', data));
 </script>
