@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<script src="apikey.js"></script>
+<script>
+function bfetch(path, params) {
+  headers = {
+      'X-API-Key': API_KEY,
+  };
+  if (params) {
+    let paramobj = new URLSearchParams();
+    for (let [k, v] of Object.entries(params))
+      paramobj.append(k, v);
+    path = `${path}?${paramobj.toString()}`;
+  }
+  return fetch('https://www.bungie.net/Platform' + path, {headers})
+      .then(req => req.json());
+}
+
+bfetch('/User/SearchUsers', {q: 'nmlorg'})
+    .then(data => console.log('data =', data));
+</script>
