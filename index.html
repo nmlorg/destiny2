@@ -5,6 +5,8 @@
 class Bungie {
   constructor() {
     this.auth = {expires: 0, refresh_expires: 0};
+    let bungienet = new BungieNet(this);
+    this.net = bungienet.build('');
   }
 
   store(key, data) {
@@ -35,7 +37,7 @@ class Bungie {
         init['body'] = paramobj.toString();
       }
     }
-    path = 'https://www.bungie.net/Platform' + path;
+    path = 'https://www.bungie.net/' + path;
     console.log('fetch(', path, init, ')');
     return fetch(path, init)
         .then(req => req.json());
@@ -46,7 +48,7 @@ class Bungie {
     if (search.get('code') && search.get('state')) {
       let state = atob(search.get('state'));
       if (state[0] == '#')
-        return this.fetch('/App/OAuth/token/', {client_id: CLIENT_ID, grant_type: 'authorization_code', code: search.get('code')}, 'POST')
+        return this.net.platform.app.OAuth.token.POST({client_id: CLIENT_ID, grant_type: 'authorization_code', code: search.get('code')})
             .then(data => {
               this.handleCredentials(data);
               history.replaceState(null, null, '.' + state);
@@ -59,7 +61,7 @@ class Bungie {
     if (this.auth.expires > now)
       return Promise.resolve();
     if (this.auth.refresh_expires > now)
-      return this.fetch('/App/OAuth/token/', {client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: this.auth.refresh_token}, 'POST')
+      return this.net.platform.app.OAuth.token.POST({client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: this.auth.refresh_token})
           .then(data => this.handleCredentials(data));
     location.replace(`https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${btoa(location.hash || '#')}`);
     return Promise.reject();
@@ -75,9 +77,37 @@ class Bungie {
 }
 
 
+class BungieNet {
+  constructor(bungie) {
+    this.bungie = bungie;
+  }
+
+  build(path) {
+    let cache = function() {};
+    cache.path = path;
+    cache.cache = {};
+    return new Proxy(cache, this);
+  }
+
+  get(target, name) {
+    if (!target.cache[name]) {
+      if (name.toUpperCase() == name)
+        target.cache[name] = params => this.bungie.fetch(target.path, params, name);
+      else
+        target.cache[name] = this.build(`${target.path}${name}/`);
+    }
+    return target.cache[name];
+  }
+
+  apply(target, thisArg, args) {
+    return this.get(target, 'GET').apply(thisArg, args);
+  }
+}
+
+
 let bungie = new Bungie();
 
 bungie.login()
-    .then(() => bungie.fetch('/User/GetMembershipsForCurrentUser/'))
+    .then(() => bungie.net.platform.user.GetMembershipsForCurrentUser())
     .then(data => console.log('Current user:', data));
 </script>
