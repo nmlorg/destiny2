@@ -94,7 +94,7 @@ class BungieNet {
 
   get(target, name) {
     if (!target.cache[name]) {
-      if (name.toUpperCase() == name)
+      if (/^[A-Z]+$/.test(name))
         target.cache[name] = params => this.bungie.fetch(target.path, params, name);
       else
         target.cache[name] = this.build(`${target.path}${name}/`);
