@@ -10,7 +10,10 @@ class Bungie {
   }
 
   store(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
+    if (data === null)
+      localStorage.removeItem(key);
+    else
+      localStorage.setItem(key, JSON.stringify(data));
   }
 
   get(key) {
@@ -45,14 +48,12 @@ class Bungie {
 
   login() {
     let search = new URLSearchParams(location.search);
-    if (search.get('code') && search.get('state')) {
-      let state = atob(search.get('state'));
-      if (state[0] == '#')
-        return this.net.platform.app.OAuth.token.POST({client_id: CLIENT_ID, grant_type: 'authorization_code', code: search.get('code')})
-            .then(data => {
-              this.handleCredentials(data);
-              history.replaceState(null, null, '.' + state);
-            });
+    if (search.get('code') && this.get('auth_nonce') &&
+        (search.get('state') == this.get('auth_nonce'))) {
+      this.store('auth_nonce', null);
+      history.replaceState(null, null, '.');
+      return this.net.platform.app.OAuth.token.POST({client_id: CLIENT_ID, grant_type: 'authorization_code', code: search.get('code')})
+          .then(data => this.handleCredentials(data));
     }
     let auth = this.get('auth');
     if (auth)
@@ -63,7 +64,9 @@ class Bungie {
     if (this.auth.refresh_expires > now)
       return this.net.platform.app.OAuth.token.POST({client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: this.auth.refresh_token})
           .then(data => this.handleCredentials(data));
-    location.replace(`https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${btoa(location.hash || '#')}`);
+    let nonce = String(Math.random()).substr(2, 20);
+    this.store('auth_nonce', nonce);
+    location.replace(`https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${nonce}`);
     return Promise.reject();
   }
 
