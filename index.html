@@ -112,5 +112,9 @@ let bungie = new Bungie();
 
 bungie.login()
     .then(() => bungie.net.platform.user.GetMembershipsForCurrentUser())
-    .then(data => console.log('Current user:', data));
+    .then(data => {
+      let div = document.body.appendChild(document.createElement('pre'));
+
+      div.textContent = JSON.stringify(data, null, 4);
+    });
 </script>
