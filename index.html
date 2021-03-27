@@ -22,7 +22,7 @@ class Bungie {
       return JSON.parse(data);
   }
 
-  fetch(path, params, method='GET') {
+  async fetch(path, params, method='GET') {
     let headers = {
         'X-API-Key': API_KEY,
     };
@@ -42,28 +42,28 @@ class Bungie {
     }
     path = 'https://www.bungie.net/' + path;
     console.log('fetch(', path, init, ')');
-    return fetch(path, init)
-        .then(req => req.json());
+    let req = await fetch(path, init);
+    return req.json();
   }
 
-  login() {
+  async login() {
     let search = new URLSearchParams(location.search);
     if (search.get('code') && this.get('auth_nonce') &&
         (search.get('state') == this.get('auth_nonce'))) {
       this.store('auth_nonce', null);
       history.replaceState(null, null, '.');
-      return this.net.platform.app.OAuth.token.POST({client_id: CLIENT_ID, grant_type: 'authorization_code', code: search.get('code')})
-          .then(data => this.handleCredentials(data));
+      return this.handleCredentials(await this.net.platform.app.OAuth.token.POST(
+          {client_id: CLIENT_ID, grant_type: 'authorization_code', code: search.get('code')}));
     }
     let auth = this.get('auth');
     if (auth)
       this.auth = auth;
     let now = Date.now();
     if (this.auth.expires > now)
-      return Promise.resolve();
+      return;
     if (this.auth.refresh_expires > now)
-      return this.net.platform.app.OAuth.token.POST({client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: this.auth.refresh_token})
-          .then(data => this.handleCredentials(data));
+      return this.handleCredentials(await this.net.platform.app.OAuth.token.POST(
+          {client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: this.auth.refresh_token}));
     let nonce = String(Math.random()).substr(2, 20);
     this.store('auth_nonce', nonce);
     location.replace(`https://www.bungie.net/en/OAuth/Authorize?client_id=${CLIENT_ID}&response_type=code&state=${nonce}`);
@@ -110,11 +110,12 @@ class BungieNet {
 
 let bungie = new Bungie();
 
-bungie.login()
-    .then(() => bungie.net.platform.user.GetMembershipsForCurrentUser())
-    .then(data => {
-      let div = document.body.appendChild(document.createElement('pre'));
+(async function() {
 
-      div.textContent = JSON.stringify(data, null, 4);
-    });
+await bungie.login();
+let data = await bungie.net.platform.user.GetMembershipsForCurrentUser();
+let div = document.body.appendChild(document.createElement('pre'));
+div.textContent = JSON.stringify(data, null, 4);
+
+})();
 </script>
