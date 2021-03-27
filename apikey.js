@@ -17,7 +17,7 @@ let API_KEY = '';
 
 let ORIGINS = {
     'https://localhost:4443': [11071, '1b4b7bbc6e5449f9b22880f5f0880e9d'],
-    'https://nmlorg.github.io': [11060, 'fc29e10e0d1349d3a74feaf53b11cbf6'],
+    'https://nmlorg.github.io': [35994, 'c587efda4d23479880510282ae97da71'],
 };
 
 if (ORIGINS[location.origin])
