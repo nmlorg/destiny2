@@ -93,6 +93,10 @@ export class Bungie {
     let userdata = await this.net.platform.user.GetMembershipsForCurrentUser();
     return new usermod.User(this, userdata.Response);
   }
+
+  iconUrl(url) {
+    return 'https://www.bungie.net' + (url || '/img/misc/missing_icon_d2.png');
+  }
 }
 
 

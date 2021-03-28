@@ -50,7 +50,7 @@ async function showItems(items) {
   for (let item of items) {
     let itemDef = await bungie.getDef('InventoryItemLite', item.itemHash);
     let img = div.appendChild(document.createElement('img'));
-    img.src = `https://www.bungie.net${itemDef.displayProperties.icon}`;
+    img.src = bungie.iconUrl(itemDef.displayProperties.icon);
     img.width = img.height = 96;
     let title = itemDef.displayProperties.name || `Item ${item.itemHash}`;
     if (itemDef.displayProperties.description)

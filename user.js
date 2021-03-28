@@ -43,8 +43,9 @@ class Character {
 
   buildEmblem() {
     let div = document.createElement('div');
-    div.appendChild(document.createElement('img')).src = `https://www.bungie.net${this.rawCharacter.emblemPath}`;
+    div.appendChild(document.createElement('img')).src = this.membership.user.bungie.iconUrl(this.rawCharacter.emblemBackgroundPath);
     div.appendChild(document.createTextNode(this.rawCharacter.characterId));
+    div.addEventListener('click', e => console.log(this));
     return div;
   }
 
