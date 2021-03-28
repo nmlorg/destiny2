@@ -12,8 +12,8 @@
 //   5. Add or choose an API Key.
 //   6. Add your `OAuth client_id` and `API Key` below.
 
-let CLIENT_ID = 0;
-let API_KEY = '';
+export let CLIENT_ID = 0;
+export let API_KEY = '';
 
 let ORIGINS = {
     'https://localhost:4443': [11071, '1b4b7bbc6e5449f9b22880f5f0880e9d'],
