@@ -10,11 +10,6 @@ let bungie = window.bungie = new Bungie();
 
 await bungie.login();
 
-let manifest = await bungie.net.platform.destiny2.manifest();
-let hashes = {};
-for (let hashtype of ['DestinyInventoryBucketDefinition', 'DestinyInventoryItemLiteDefinition'])
-  hashes[hashtype] = await fetch(`https://www.bungie.net${manifest.Response.jsonWorldComponentContentPaths.en[hashtype]}`, {credentials: 'omit'}).then(data => data.json());
-
 let user = await bungie.net.platform.user.GetMembershipsForCurrentUser();
 console.log('user = %o', user);
 let bungieNetUser = user.Response.bungieNetUser;
@@ -57,12 +52,12 @@ for (let [characterId, character] of Object.entries(profile.Response.characters.
   let ul = document.body.appendChild(document.createElement('ul'));
   for (let [bucketHash, items] of Object.entries(buckets)) {
     let li = ul.appendChild(document.createElement('li'));
-    let bucketDef = hashes.DestinyInventoryBucketDefinition[bucketHash];
+    let bucketDef = await bungie.getDef('InventoryBucket', bucketHash);
     li.appendChild(dispDef(bucketDef));
     let ulul = li.appendChild(document.createElement('ul'));
     for (let item of items) {
       let lili = ulul.appendChild(document.createElement('li'));
-      let itemDef = hashes.DestinyInventoryItemLiteDefinition[item.itemHash];
+      let itemDef = await bungie.getDef('InventoryItemLite', item.itemHash);
       lili.appendChild(dispDef(itemDef));
       lili.appendChild(document.createTextNode(JSON.stringify(item)));
     }

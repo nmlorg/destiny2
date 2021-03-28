@@ -6,6 +6,7 @@ export class Bungie {
     this.auth = {expires: 0, refresh_expires: 0};
     let bungienet = new BungieNet(this);
     this.net = bungienet.build('');
+    this.defs = {};
   }
 
   store(key, data) {
@@ -75,6 +76,16 @@ export class Bungie {
     data.refresh_expires = now + data.refresh_expires_in * 1000 - 1000;
     this.auth = data;
     this.store('auth', this.auth);
+  }
+
+  async getDef(defType, hash) {
+    if (!this.defs[defType]) {
+      if (!this.manifest)
+        this.manifest = await bungie.net.platform.destiny2.manifest();
+      let path = this.manifest.Response.jsonWorldComponentContentPaths.en[`Destiny${defType}Definition`];
+      this.defs[defType] = await fetch(`https://www.bungie.net${path}`, {credentials: 'omit'}).then(data => data.json());
+    }
+    return this.defs[defType][hash];
   }
 }
 
