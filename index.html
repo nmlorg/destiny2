@@ -19,8 +19,21 @@ console.log('characters = %o', characters);
 for (let [characterId, character] of Object.entries(characters)) {
   document.body.appendChild(character.buildEmblem());
   let ul = document.body.appendChild(document.createElement('ul'));
-  for (let [bucketHash, items] of Object.entries(character.getItemsByBucket())) {
+  let table = ul.appendChild(document.createElement('li')).appendChild(document.createElement('table'));
+  let buckets = character.getItemsByBucket();
+  for (let [left, right] of [[3284755031, 3448274439], [1498876634, 3551918588], [2465295065, 14239492], [953998645, 20886954], [4023194814, 1585787867], [1506418338, 4292445962], [2025709351, 4274335291], [284967655, 3683254069], [null, 1107761855]]) {
+    let tr = table.appendChild(document.createElement('tr'));
+    let td = tr.appendChild(document.createElement('td'));
+    if (left) {
+      td.appendChild(await showItems(buckets[left]));
+      delete buckets[left];
+    }
+    tr.appendChild(document.createElement('td')).appendChild(await showItems(buckets[right]));
+    delete buckets[right];
+  }
+  for (let [bucketHash, items] of Object.entries(buckets)) {
     let li = ul.appendChild(document.createElement('li'));
+
     let bucketDef = await bungie.getDef('InventoryBucket', bucketHash);
     let title = bucketDef.displayProperties.name || `Bucket ${bucketHash}`;
     if (bucketDef.displayProperties.description)
@@ -28,19 +41,24 @@ for (let [characterId, character] of Object.entries(characters)) {
     let div = li.appendChild(document.createElement('div'));
     div.textContent = title;
     div.addEventListener('click', e => console.log(bucketDef));
-
-    for (let item of items) {
-      let itemDef = await bungie.getDef('InventoryItemLite', item.itemHash);
-      let img = li.appendChild(document.createElement('img'));
-      img.src = `https://www.bungie.net${itemDef.displayProperties.icon}`;
-      img.width = img.height = 96;
-      let title = itemDef.displayProperties.name || `Item ${item.itemHash}`;
-      if (itemDef.displayProperties.description)
-        title = `${title}\n\n${itemDef.displayProperties.description}`;
-      img.title = title;
-      img.addEventListener('click', e => {console.log(item); console.log(itemDef)});
-    }
+    li.appendChild(await showItems(items));
   }
+}
+
+async function showItems(items) {
+  let div = document.createElement('div');
+  for (let item of items) {
+    let itemDef = await bungie.getDef('InventoryItemLite', item.itemHash);
+    let img = div.appendChild(document.createElement('img'));
+    img.src = `https://www.bungie.net${itemDef.displayProperties.icon}`;
+    img.width = img.height = 96;
+    let title = itemDef.displayProperties.name || `Item ${item.itemHash}`;
+    if (itemDef.displayProperties.description)
+      title = `${title}\n\n${itemDef.displayProperties.description}`;
+    img.title = title;
+    img.addEventListener('click', e => {console.log(item); console.log(itemDef)});
+  }
+  return div;
 }
 
 
