@@ -81,11 +81,17 @@ export class Bungie {
   async getDef(defType, hash) {
     if (!this.defs[defType]) {
       if (!this.manifest)
-        this.manifest = await bungie.net.platform.destiny2.manifest();
+        this.manifest = await this.net.platform.destiny2.manifest();
       let path = this.manifest.Response.jsonWorldComponentContentPaths.en[`Destiny${defType}Definition`];
       this.defs[defType] = await fetch(`https://www.bungie.net${path}`, {credentials: 'omit'}).then(data => data.json());
     }
     return this.defs[defType][hash];
+  }
+
+  async getCurrentUser() {
+    let usermod = await import('./user.js');
+    let userdata = await this.net.platform.user.GetMembershipsForCurrentUser();
+    return new usermod.User(this, userdata.Response);
   }
 }
 

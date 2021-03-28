@@ -10,72 +10,37 @@ let bungie = window.bungie = new Bungie();
 
 await bungie.login();
 
-let user = await bungie.net.platform.user.GetMembershipsForCurrentUser();
+let user = await bungie.getCurrentUser();
 console.log('user = %o', user);
-let bungieNetUser = user.Response.bungieNetUser;
-document.body.appendChild(document.createElement('h1')).textContent = 'Bungie User';
-document.body.appendChild(document.createElement('img')).src = `https://www.bungie.net${bungieNetUser.profilePicturePath}`;
-document.body.appendChild(document.createTextNode(bungieNetUser.displayName));
-document.body.appendChild(document.createElement('br'));
 
-let membership;
-for (membership of user.Response.destinyMemberships)
-  if (membership.membershipId == user.Response.primaryMembershipId)
-    break;
-console.log('membership = %o', membership);
-document.body.appendChild(document.createElement('h1')).textContent = 'Platform User';
-document.body.appendChild(document.createElement('img')).src = `https://www.bungie.net${membership.iconPath}`;
-document.body.appendChild(document.createTextNode(membership.displayName));
-document.body.appendChild(document.createElement('br'));
+let characters = await user.primaryMembership.getCharacters();
+console.log('characters = %o', characters);
 
-let profile = await bungie.net.platform.destiny2[membership.membershipType].profile[membership.membershipId](
-    {components: 'Profiles,VendorReceipts,ProfileInventories,ProfileCurrencies,ProfileProgression,Characters,CharacterInventories,CharacterProgressions,CharacterEquipment'});
-console.log('profile = %o', profile);
-document.body.appendChild(document.createElement('h1')).textContent = 'Characters';
-for (let [characterId, character] of Object.entries(profile.Response.characters.data)) {
-  document.body.appendChild(document.createElement('img')).src = `https://www.bungie.net${character.emblemPath}`;
-  document.body.appendChild(document.createTextNode(character.characterId));
-  document.body.appendChild(document.createElement('br'));
-  let buckets = {};
-  for (let item of profile.Response.characterEquipment.data[character.characterId].items) {
-    console.assert(item.transferStatus & 1);
-    if (!buckets[item.bucketHash])
-      buckets[item.bucketHash] = [];
-    buckets[item.bucketHash].push(item);
-  }
-  for (let item of profile.Response.characterInventories.data[character.characterId].items) {
-    console.assert(!(item.tranasferStatus & 1));
-    if (!buckets[item.bucketHash])
-      buckets[item.bucketHash] = [];
-    buckets[item.bucketHash].push(item);
-  }
+for (let [characterId, character] of Object.entries(characters)) {
+  document.body.appendChild(character.buildEmblem());
   let ul = document.body.appendChild(document.createElement('ul'));
-  for (let [bucketHash, items] of Object.entries(buckets)) {
+  for (let [bucketHash, items] of Object.entries(character.getItemsByBucket())) {
     let li = ul.appendChild(document.createElement('li'));
     let bucketDef = await bungie.getDef('InventoryBucket', bucketHash);
-    li.appendChild(dispDef(bucketDef));
-    let ulul = li.appendChild(document.createElement('ul'));
+    let title = bucketDef.displayProperties.name || `Bucket ${bucketHash}`;
+    if (bucketDef.displayProperties.description)
+      title = `${title} \u2014 ${bucketDef.displayProperties.description}`;
+    let div = li.appendChild(document.createElement('div'));
+    div.textContent = title;
+    div.addEventListener('click', e => console.log(bucketDef));
+
     for (let item of items) {
-      let lili = ulul.appendChild(document.createElement('li'));
       let itemDef = await bungie.getDef('InventoryItemLite', item.itemHash);
-      lili.appendChild(dispDef(itemDef));
-      lili.appendChild(document.createTextNode(JSON.stringify(item)));
+      let img = li.appendChild(document.createElement('img'));
+      img.src = `https://www.bungie.net${itemDef.displayProperties.icon}`;
+      img.width = img.height = 96;
+      let title = itemDef.displayProperties.name || `Item ${item.itemHash}`;
+      if (itemDef.displayProperties.description)
+        title = `${title}\n\n${itemDef.displayProperties.description}`;
+      img.title = title;
+      img.addEventListener('click', e => {console.log(item); console.log(itemDef)});
     }
   }
-}
-
-function dispDef(def) {
-  let div = document.createElement('div');
-  if (def.displayProperties.icon)
-    div.appendChild(document.createElement('img')).src = `https://www.bungie.net${def.displayProperties.icon}`;
-  let title = def.displayProperties.name || def.hash;
-  if (def.displayProperties.description)
-    title = `${title} \u2022 ${def.displayProperties.description}`;
-  div.appendChild(document.createTextNode(title));
-  let debug = div.appendChild(document.createElement('span'));
-  debug.textContent = ' \u24d8';
-  debug.addEventListener('click', e => console.log(def));
-  return div;
 }
 
 
