@@ -40,7 +40,11 @@ export class Bungie {
         init['body'] = paramobj.toString();
       }
     }
-    path = 'https://www.bungie.net/' + path;
+    // See https://github.com/Bungie-net/api/issues/853.
+    if (path.search(/^platform[/]destiny2[/]stats[/]postgamecarnagereport[/]/i) == 0)
+      path = 'https://stats.bungie.net/' + path;
+    else
+      path = 'https://www.bungie.net/' + path;
     console.log('fetch(%o, %o)', path, init);
     let req = await fetch(path, init);
     return req.json();
